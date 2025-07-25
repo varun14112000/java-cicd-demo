@@ -26,7 +26,7 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh """
                         echo $PASSWORD | docker login -u $USERNAME --password-stdin
                         docker push ${DOCKER_HUB_USERNAME}/java-cicd-demo:latest
