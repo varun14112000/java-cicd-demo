@@ -29,7 +29,7 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker push $DOCKER_IMAGE
@@ -43,7 +43,7 @@ pipeline {
                 withCredentials([aws(credentialsId: 'aws-cred', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                     sh '''
                         mkdir -p $(dirname $KUBECONFIG_PATH)
-                        aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster --kubeconfig $KUBECONFIG_PATH
+                        aws eks update-kubeconfig --region ap-south-1 --name mycluster --kubeconfig $KUBECONFIG_PATH
                     '''
                 }
             }
@@ -52,8 +52,8 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    kubectl --kubeconfig=$KUBECONFIG_PATH apply -f k8s/deployment.yaml
-                    kubectl --kubeconfig=$KUBECONFIG_PATH apply -f k8s/service.yaml
+                    kubectl --kubeconfig=$KUBECONFIG_PATH apply -f k8s-deployment.yaml
+                    kubectl --kubeconfig=$KUBECONFIG_PATH apply -f service.yaml
                 '''
             }
         }
