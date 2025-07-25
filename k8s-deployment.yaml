@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-cicd-demo
+spec:
+  replicas: 2  # two pods for load balancing
+  selector:
+    matchLabels:
+      app: java-cicd-demo
+  template:
+    metadata:
+      labels:
+        app: java-cicd-demo
+    spec:
+      containers:
+      - name: java-cicd-demo
+        image: your-dockerhub-username/java-cicd-demo:latest
+        ports:
+        - containerPort: 8080
