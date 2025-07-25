@@ -2,13 +2,16 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'varun1411/java-cicd-demo:latest'
+        DOCKER_IMAGE = "varun1411/java-cicd-demo:latest"
+        KUBECONFIG_PATH = "${WORKSPACE}/kubeconfig"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', credentialsId: '2c8160d2-6d8b-4a43-8937-6bf5dbbd7925', url: 'https://github.com/varun14112000/java-cicd-demo.git'
+                git credentialsId: '2c8160d2-6d8b-4a43-8937-6bf5dbbd7925',
+                    url: 'https://github.com/varun14112000/java-cicd-demo.git',
+                    branch: 'main'
             }
         }
 
@@ -20,16 +23,27 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                        echo $PASSWORD | docker login -u $USERNAME --password-stdin
-                        docker push ${IMAGE_NAME}
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $DOCKER_IMAGE
+                    '''
+                }
+            }
+        }
+
+        stage('Configure Kubeconfig') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-cred', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    sh '''
+                        mkdir -p $(dirname $KUBECONFIG_PATH)
+                        aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster --kubeconfig $KUBECONFIG_PATH
                     '''
                 }
             }
@@ -37,16 +51,14 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig-cred', variable: 'KUBECONFIG')]) {
-                    sh '''
-                        kubectl config get-contexts
-                        kubectl config use-context your-cluster-context
-                        kubectl apply -f k8s-deployment.yaml
-                    '''
-                }
+                sh '''
+                    kubectl --kubeconfig=$KUBECONFIG_PATH apply -f k8s/deployment.yaml
+                    kubectl --kubeconfig=$KUBECONFIG_PATH apply -f k8s/service.yaml
+                '''
             }
         }
     }
 }
+
 
 
